@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Plot from 'react-plotly.js';
-import { SeriesInfo, LoadedSeries, AggregationType, TimeSeriesData } from './types';
+import { SeriesInfo, AggregationType, TimeSeriesData } from './types';
 import { loadCSV } from './utils/dataLoader';
 import { aggregateData } from './utils/aggregation';
 import './App.css';
@@ -24,9 +24,18 @@ const AVAILABLE_SERIES: SeriesInfo[] = [
   { id: 'industrial_3', name: 'Industrial 3', file: '/data/industrial_3.csv', color: '#95E1D3' },
 ];
 
+interface AddedSeriesMetadata {
+  instanceId: string;
+  seriesId: string;
+  name: string;
+  color: string;
+  file: string;
+}
+
 function App() {
   const [baseSeries, setBaseSeries] = useState<TimeSeriesData[]>([]);
-  const [loadedSeries, setLoadedSeries] = useState<LoadedSeries[]>([]);
+  const [runningTotal, setRunningTotal] = useState<TimeSeriesData[]>([]);
+  const [addedSeries, setAddedSeries] = useState<AddedSeriesMetadata[]>([]);
   const [aggregation, setAggregation] = useState<AggregationType>('raw');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +52,8 @@ function App() {
     try {
       const data = await loadCSV(BASE_SERIES.file);
       setBaseSeries(data);
+      // Initialize running total as a copy of base series
+      setRunningTotal(data.map(d => ({ ...d })));
     } catch (err) {
       setError(`Failed to load base series: ${err}`);
     } finally {
@@ -57,54 +68,74 @@ function App() {
     try {
       const data = await loadCSV(seriesInfo.file);
       const instanceId = `${seriesInfo.id}_${Date.now()}`;
-      setLoadedSeries(prev => [...prev, {
+
+      // Add series data to running total
+      setRunningTotal(prev => {
+        const dataMap = new Map(data.map(d => [d.timestamp.toISOString(), d.energy_kwh]));
+        return prev.map(point => {
+          const additionalValue = dataMap.get(point.timestamp.toISOString()) || 0;
+          return {
+            timestamp: point.timestamp,
+            energy_kwh: point.energy_kwh + additionalValue
+          };
+        });
+      });
+
+      // Store metadata for display
+      setAddedSeries(prev => [...prev, {
         instanceId,
-        info: seriesInfo,
-        data
+        seriesId: seriesInfo.id,
+        name: seriesInfo.name,
+        color: seriesInfo.color,
+        file: seriesInfo.file
       }]);
+
       setSelectedSeriesId(''); // Reset dropdown
     } catch (err) {
       setError(`Failed to load ${seriesInfo.name}: ${err}`);
     }
   };
 
-  const removeSeries = (instanceId: string) => {
-    setLoadedSeries(prev => prev.filter(s => s.instanceId !== instanceId));
+  const removeSeries = async (instanceId: string) => {
+    const seriesMetadata = addedSeries.find(s => s.instanceId === instanceId);
+    if (!seriesMetadata) return;
+
+    try {
+      // Load the series data again to subtract it
+      const data = await loadCSV(seriesMetadata.file);
+
+      // Subtract series data from running total
+      setRunningTotal(prev => {
+        const dataMap = new Map(data.map(d => [d.timestamp.toISOString(), d.energy_kwh]));
+        return prev.map(point => {
+          const valueToRemove = dataMap.get(point.timestamp.toISOString()) || 0;
+          return {
+            timestamp: point.timestamp,
+            energy_kwh: point.energy_kwh - valueToRemove
+          };
+        });
+      });
+
+      // Remove from metadata
+      setAddedSeries(prev => prev.filter(s => s.instanceId !== instanceId));
+    } catch (err) {
+      setError(`Failed to remove ${seriesMetadata.name}: ${err}`);
+    }
   };
 
-  const getPlotData = () => {
+  const plotData = useMemo(() => {
     const traces: any[] = [];
 
     if (baseSeries.length === 0) return traces;
 
     const aggregatedBase = aggregateData(baseSeries, aggregation);
-
-    // Pre-aggregate all loaded series once and create Maps for O(1) lookup
-    const aggregatedSeriesMaps = loadedSeries.map(series => {
-      const aggregated = aggregateData(series.data, aggregation);
-      const dataMap = new Map(aggregated.map(d => [d.timestamp.toISOString(), d.energy_kwh]));
-      return dataMap;
-    });
-
-    // Calculate sum of base + all loaded series
-    const sumData = aggregatedBase.map(basePoint => {
-      let sum = basePoint.energy_kwh;
-
-      aggregatedSeriesMaps.forEach(dataMap => {
-        const value = dataMap.get(basePoint.timestamp.toISOString());
-        if (value !== undefined) {
-          sum += value;
-        }
-      });
-
-      return { timestamp: basePoint.timestamp, energy_kwh: sum };
-    });
+    const aggregatedTotal = aggregateData(runningTotal, aggregation);
 
     // Add base line first (for fill to reference)
     traces.push({
       x: aggregatedBase.map(d => d.timestamp),
       y: aggregatedBase.map(d => d.energy_kwh),
-      type: 'scatter',
+      type: 'scattergl',
       mode: 'lines',
       name: 'Base Load',
       line: { color: '#1976D2', width: 2 },
@@ -114,18 +145,18 @@ function App() {
 
     // Add sum line with fill to previous trace (base)
     traces.push({
-      x: aggregatedBase.map(d => d.timestamp),
-      y: sumData.map(d => d.energy_kwh),
+      x: aggregatedTotal.map(d => d.timestamp),
+      y: aggregatedTotal.map(d => d.energy_kwh),
       fill: 'tonexty',
       fillcolor: 'rgba(76, 175, 80, 0.3)',
-      type: 'scatter',
+      type: 'scattergl',
       mode: 'lines',
       name: 'Base + Additions',
       line: { color: '#4CAF50', width: 2 },
     });
 
     return traces;
-  };
+  }, [baseSeries, runningTotal, aggregation]);
 
   const handleSeriesSelect = (seriesId: string) => {
     if (seriesId) {
@@ -133,7 +164,7 @@ function App() {
     }
   };
 
-  if (loading && loadedSeries.length === 0) {
+  if (loading && addedSeries.length === 0) {
     return <div className="loading">Loading data...</div>;
   }
 
@@ -195,14 +226,14 @@ function App() {
         </div>
       </div>
 
-      {loadedSeries.length > 0 && (
+      {addedSeries.length > 0 && (
         <div className="loaded-series">
-          <label>Added Series ({loadedSeries.length}):</label>
+          <label>Added Series ({addedSeries.length}):</label>
           <div className="series-tags">
-            {loadedSeries.map((series) => (
+            {addedSeries.map((series) => (
               <div key={series.instanceId} className="series-tag">
-                <span className="series-color" style={{ backgroundColor: series.info.color }}></span>
-                <span className="series-name">{series.info.name}</span>
+                <span className="series-color" style={{ backgroundColor: series.color }}></span>
+                <span className="series-name">{series.name}</span>
                 <button
                   className="remove-btn"
                   onClick={() => removeSeries(series.instanceId)}
@@ -218,7 +249,7 @@ function App() {
 
       <div className="chart-container">
         <Plot
-          data={getPlotData()}
+          data={plotData}
           layout={{
             title: 'Energy Consumption Time Series',
             xaxis: {
