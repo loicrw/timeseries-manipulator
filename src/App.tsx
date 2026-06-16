@@ -11,6 +11,8 @@ interface AddedSeriesMetadata {
   name: string;
   color: string;
   file: string;
+  positiveMultiplier: number;
+  negativeMultiplier: number;
 }
 
 function App() {
@@ -55,7 +57,11 @@ function App() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            addedSeriesFiles: addedSeries.map(s => s.file),
+            addedSeriesFiles: addedSeries.map(s => ({
+              file: s.file,
+              positiveMultiplier: s.positiveMultiplier,
+              negativeMultiplier: s.negativeMultiplier
+            })),
             aggregation
           })
         });
@@ -85,7 +91,9 @@ function App() {
       seriesId: seriesInfo.id,
       name: seriesInfo.name,
       color: seriesInfo.color,
-      file: seriesInfo.file
+      file: seriesInfo.file,
+      positiveMultiplier: 1,
+      negativeMultiplier: 1
     }]);
     setSelectedSeriesId('');
   };
@@ -94,34 +102,36 @@ function App() {
     setAddedSeries(prev => prev.filter(s => s.instanceId !== instanceId));
   };
 
+  const updateMultiplier = (instanceId: string, field: 'positiveMultiplier' | 'negativeMultiplier', value: number) => {
+    setAddedSeries(prev => prev.map(s =>
+      s.instanceId === instanceId ? { ...s, [field]: value } : s
+    ));
+  };
+
   const plotData = useMemo(() => {
     const traces: any[] = [];
 
     if (baseSeries.length === 0) return traces;
 
-    // Add base line first (for fill to reference)
+    // Add base line
     traces.push({
       x: baseSeries.map(d => d.timestamp),
       y: baseSeries.map(d => d.energy_kwh),
       type: 'scattergl',
       mode: 'lines',
       name: 'Base Load',
-      line: { color: '#1976D2', width: 2 },
-      fill: 'tozeroy',
-      fillcolor: 'rgba(25, 118, 210, 0.1)',
+      line: { color: '#64696C', width: 2 },
     });
 
-    // Add sum line with fill to previous trace (base)
+    // Add sum line
     if (addedSeries.length > 0) {
       traces.push({
         x: runningTotal.map(d => d.timestamp),
         y: runningTotal.map(d => d.energy_kwh),
-        fill: 'tonexty',
-        fillcolor: 'rgba(76, 175, 80, 0.3)',
         type: 'scattergl',
         mode: 'lines',
         name: 'Base + Additions',
-        line: { color: '#4CAF50', width: 2 },
+        line: { color: '#FFB81C', width: 2 },
       });
     }
 
@@ -199,18 +209,42 @@ function App() {
       {addedSeries.length > 0 && (
         <div className="loaded-series">
           <label>Added Series ({addedSeries.length}):</label>
-          <div className="series-tags">
+          <div className="series-list">
             {addedSeries.map((series) => (
-              <div key={series.instanceId} className="series-tag">
-                <span className="series-color" style={{ backgroundColor: series.color }}></span>
-                <span className="series-name">{series.name}</span>
-                <button
-                  className="remove-btn"
-                  onClick={() => removeSeries(series.instanceId)}
-                  title="Remove series"
-                >
-                  ×
-                </button>
+              <div key={series.instanceId} className="series-item">
+                <div className="series-header">
+                  <span className="series-color" style={{ backgroundColor: series.color }}></span>
+                  <span className="series-name">{series.name}</span>
+                  <button
+                    className="remove-btn"
+                    onClick={() => removeSeries(series.instanceId)}
+                    title="Remove series"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="series-multipliers">
+                  <div className="multiplier-input">
+                    <label>Positive multiplier:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={series.positiveMultiplier}
+                      onChange={(e) => updateMultiplier(series.instanceId, 'positiveMultiplier', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="multiplier-input">
+                    <label>Negative multiplier:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={series.negativeMultiplier}
+                      onChange={(e) => updateMultiplier(series.instanceId, 'negativeMultiplier', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
               </div>
             ))}
           </div>

@@ -50,12 +50,26 @@ def aggregate_dataframe(df: pl.DataFrame, aggregation: str) -> pl.DataFrame:
     )
 
 
-def add_series(base_df: pl.DataFrame, series_files: list[str]) -> pl.DataFrame:
-    """Add multiple series to base using Polars join and sum operations."""
+def add_series(base_df: pl.DataFrame, series_configs: list[dict]) -> pl.DataFrame:
+    """Add multiple series to base using Polars join and sum operations with multipliers."""
     result_df = base_df.clone()
 
-    for filename in series_files:
+    for config in series_configs:
+        filename = config["file"]
+        positive_mult = config.get("positiveMultiplier", 1.0)
+        negative_mult = config.get("negativeMultiplier", 1.0)
+
         series_df = load_dataframe(filename)
+
+        # Apply multipliers to positive and negative values separately
+        series_df = series_df.with_columns([
+            pl.when(pl.col("energy_kwh") > 0)
+            .then(pl.col("energy_kwh") * positive_mult)
+            .when(pl.col("energy_kwh") < 0)
+            .then(pl.col("energy_kwh") * negative_mult)
+            .otherwise(pl.col("energy_kwh"))
+            .alias("energy_kwh")
+        ])
 
         # Polars join is extremely fast (hash-based)
         result_df = (
@@ -186,17 +200,17 @@ def get_base_series():
 
 @app.route("/api/running-total", methods=["POST"])
 def get_running_total():
-    """Calculate running total (base + added series) with aggregation."""
+    """Calculate running total (base + added series) with aggregation and multipliers."""
     try:
         body = request.get_json()
-        added_series_files = body.get("addedSeriesFiles", [])
+        added_series_configs = body.get("addedSeriesFiles", [])
         aggregation = body.get("aggregation", "raw")
 
         # Load base
         base_df = load_dataframe("base.csv")
 
-        # Add all series using Polars operations
-        combined_df = add_series(base_df, added_series_files)
+        # Add all series using Polars operations with multipliers
+        combined_df = add_series(base_df, added_series_configs)
 
         # Aggregate
         aggregated_df = aggregate_dataframe(combined_df, aggregation)
