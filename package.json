@@ -7,7 +7,9 @@
     "dev": "vite",
     "server": "cd server-py && uv run main.py",
     "server:node": "tsx watch server/index.ts",
+    "stop": "lsof -ti:3001 | xargs kill -9 2>/dev/null || true && lsof -ti:5173,5174 | xargs kill -9 2>/dev/null || true && echo 'All servers stopped'",
     "dev:all": "npm run server & npm run dev",
+    "restart": "npm run stop & npm run dev:all",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
