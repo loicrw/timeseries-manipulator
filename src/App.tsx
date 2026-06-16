@@ -322,21 +322,33 @@ function App() {
             style={{ width: '100%', height: '100%' }}
             onRelayout={(event: any) => {
               // Capture zoom/pan changes
-              if (event['xaxis.range[0]'] && event['xaxis.range[1]']) {
-                setAxisRanges({
-                  xaxis: [event['xaxis.range[0]'], event['xaxis.range[1]']],
-                  yaxis: event['yaxis.range[0]'] && event['yaxis.range[1]']
-                    ? [event['yaxis.range[0]'], event['yaxis.range[1]']]
-                    : axisRanges?.yaxis
-                });
+              const newRanges = { ...axisRanges };
+
+              // Handle x-axis range changes
+              if (event['xaxis.range[0]'] !== undefined && event['xaxis.range[1]'] !== undefined) {
+                newRanges.xaxis = [event['xaxis.range[0]'], event['xaxis.range[1]']];
               } else if (event['xaxis.range']) {
-                setAxisRanges({
-                  xaxis: event['xaxis.range'],
-                  yaxis: event['yaxis.range'] || axisRanges?.yaxis
-                });
-              } else if (event['xaxis.autorange'] || event['yaxis.autorange']) {
-                // User double-clicked to reset - clear stored ranges
-                setAxisRanges(null);
+                newRanges.xaxis = event['xaxis.range'];
+              }
+
+              // Handle y-axis range changes
+              if (event['yaxis.range[0]'] !== undefined && event['yaxis.range[1]'] !== undefined) {
+                newRanges.yaxis = [event['yaxis.range[0]'], event['yaxis.range[1]']];
+              } else if (event['yaxis.range']) {
+                newRanges.yaxis = event['yaxis.range'];
+              }
+
+              // Check for autorange (reset zoom)
+              if (event['xaxis.autorange'] === true) {
+                delete newRanges.xaxis;
+              }
+              if (event['yaxis.autorange'] === true) {
+                delete newRanges.yaxis;
+              }
+
+              // Only update if we have valid ranges or if we're clearing them
+              if (newRanges.xaxis || newRanges.yaxis || event['xaxis.autorange'] || event['yaxis.autorange']) {
+                setAxisRanges(Object.keys(newRanges).length > 0 ? newRanges : null);
               }
             }}
           />
