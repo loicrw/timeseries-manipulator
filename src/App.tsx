@@ -25,6 +25,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>('');
+  const [axisRanges, setAxisRanges] = useState<{xaxis?: [number, number], yaxis?: [number, number]} | null>(null);
 
   // Load available series list
   useEffect(() => {
@@ -300,10 +301,12 @@ function App() {
                 title: 'Time',
                 type: 'date',
                 rangeslider: { visible: false },
+                ...(axisRanges?.xaxis ? { range: axisRanges.xaxis } : {}),
               },
               yaxis: {
                 title: 'Energy Consumption (kWh)',
                 fixedrange: false,
+                ...(axisRanges?.yaxis ? { range: axisRanges.yaxis } : {}),
               },
               hovermode: 'x unified',
               dragmode: 'zoom',
@@ -317,6 +320,25 @@ function App() {
               scrollZoom: true,
             }}
             style={{ width: '100%', height: '100%' }}
+            onRelayout={(event: any) => {
+              // Capture zoom/pan changes
+              if (event['xaxis.range[0]'] && event['xaxis.range[1]']) {
+                setAxisRanges({
+                  xaxis: [event['xaxis.range[0]'], event['xaxis.range[1]']],
+                  yaxis: event['yaxis.range[0]'] && event['yaxis.range[1]']
+                    ? [event['yaxis.range[0]'], event['yaxis.range[1]']]
+                    : axisRanges?.yaxis
+                });
+              } else if (event['xaxis.range']) {
+                setAxisRanges({
+                  xaxis: event['xaxis.range'],
+                  yaxis: event['yaxis.range'] || axisRanges?.yaxis
+                });
+              } else if (event['xaxis.autorange'] || event['yaxis.autorange']) {
+                // User double-clicked to reset - clear stored ranges
+                setAxisRanges(null);
+              }
+            }}
           />
         </div>
       </div>
