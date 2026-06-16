@@ -1,28 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import { SeriesInfo, AggregationType, TimeSeriesData } from './types';
-import { loadCSV } from './utils/dataLoader';
-import { aggregateData } from './utils/aggregation';
 import './App.css';
 
-const BASE_SERIES: SeriesInfo = {
-  id: 'base',
-  name: 'Base Load',
-  file: '/data/base.csv',
-  color: '#1976D2'
-};
-
-const AVAILABLE_SERIES: SeriesInfo[] = [
-  { id: 'residential_1', name: 'Residential 1', file: '/data/residential_1.csv', color: '#FF6B6B' },
-  { id: 'residential_2', name: 'Residential 2', file: '/data/residential_2.csv', color: '#FF6B6B' },
-  { id: 'residential_3', name: 'Residential 3', file: '/data/residential_3.csv', color: '#FF6B6B' },
-  { id: 'commercial_1', name: 'Commercial 1', file: '/data/commercial_1.csv', color: '#4ECDC4' },
-  { id: 'commercial_2', name: 'Commercial 2', file: '/data/commercial_2.csv', color: '#4ECDC4' },
-  { id: 'commercial_3', name: 'Commercial 3', file: '/data/commercial_3.csv', color: '#4ECDC4' },
-  { id: 'industrial_1', name: 'Industrial 1', file: '/data/industrial_1.csv', color: '#95E1D3' },
-  { id: 'industrial_2', name: 'Industrial 2', file: '/data/industrial_2.csv', color: '#95E1D3' },
-  { id: 'industrial_3', name: 'Industrial 3', file: '/data/industrial_3.csv', color: '#95E1D3' },
-];
+const API_BASE = 'http://localhost:3001/api';
 
 interface AddedSeriesMetadata {
   instanceId: string;
@@ -36,91 +17,81 @@ function App() {
   const [baseSeries, setBaseSeries] = useState<TimeSeriesData[]>([]);
   const [runningTotal, setRunningTotal] = useState<TimeSeriesData[]>([]);
   const [addedSeries, setAddedSeries] = useState<AddedSeriesMetadata[]>([]);
+  const [availableSeries, setAvailableSeries] = useState<SeriesInfo[]>([]);
   const [aggregation, setAggregation] = useState<AggregationType>('raw');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>('');
 
-  // Load base series on mount
+  // Load available series list
   useEffect(() => {
-    loadBaseSeries();
+    fetch(`${API_BASE}/series`)
+      .then(res => res.json())
+      .then(data => setAvailableSeries(data.series))
+      .catch(err => console.error('Failed to load series list:', err));
   }, []);
 
-  const loadBaseSeries = async () => {
+  // Load data from API
+  useEffect(() => {
+    loadData();
+  }, [aggregation, addedSeries]);
+
+  const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await loadCSV(BASE_SERIES.file);
-      setBaseSeries(data);
-      // Initialize running total as a copy of base series
-      setRunningTotal(data.map(d => ({ ...d })));
+      // Fetch base series
+      const baseRes = await fetch(`${API_BASE}/base?aggregation=${aggregation}`);
+      const baseData = await baseRes.json();
+      const basePoints = baseData.data.map((p: any) => ({
+        timestamp: new Date(p.timestamp),
+        energy_kwh: p.energy_kwh
+      }));
+      setBaseSeries(basePoints);
+
+      // Fetch running total if series are added
+      if (addedSeries.length > 0) {
+        const totalRes = await fetch(`${API_BASE}/running-total`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            addedSeriesFiles: addedSeries.map(s => s.file),
+            aggregation
+          })
+        });
+        const totalData = await totalRes.json();
+        const totalPoints = totalData.data.map((p: any) => ({
+          timestamp: new Date(p.timestamp),
+          energy_kwh: p.energy_kwh
+        }));
+        setRunningTotal(totalPoints);
+      } else {
+        setRunningTotal(basePoints);
+      }
     } catch (err) {
-      setError(`Failed to load base series: ${err}`);
+      setError(`Failed to load data: ${err}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const addSeries = async (seriesId: string) => {
-    const seriesInfo = AVAILABLE_SERIES.find(s => s.id === seriesId);
+  const addSeries = (seriesId: string) => {
+    const seriesInfo = availableSeries.find(s => s.id === seriesId);
     if (!seriesInfo) return;
 
-    try {
-      const data = await loadCSV(seriesInfo.file);
-      const instanceId = `${seriesInfo.id}_${Date.now()}`;
-
-      // Add series data to running total
-      setRunningTotal(prev => {
-        const dataMap = new Map(data.map(d => [d.timestamp.toISOString(), d.energy_kwh]));
-        return prev.map(point => {
-          const additionalValue = dataMap.get(point.timestamp.toISOString()) || 0;
-          return {
-            timestamp: point.timestamp,
-            energy_kwh: point.energy_kwh + additionalValue
-          };
-        });
-      });
-
-      // Store metadata for display
-      setAddedSeries(prev => [...prev, {
-        instanceId,
-        seriesId: seriesInfo.id,
-        name: seriesInfo.name,
-        color: seriesInfo.color,
-        file: seriesInfo.file
-      }]);
-
-      setSelectedSeriesId(''); // Reset dropdown
-    } catch (err) {
-      setError(`Failed to load ${seriesInfo.name}: ${err}`);
-    }
+    const instanceId = `${seriesInfo.id}_${Date.now()}`;
+    setAddedSeries(prev => [...prev, {
+      instanceId,
+      seriesId: seriesInfo.id,
+      name: seriesInfo.name,
+      color: seriesInfo.color,
+      file: seriesInfo.file
+    }]);
+    setSelectedSeriesId('');
   };
 
-  const removeSeries = async (instanceId: string) => {
-    const seriesMetadata = addedSeries.find(s => s.instanceId === instanceId);
-    if (!seriesMetadata) return;
-
-    try {
-      // Load the series data again to subtract it
-      const data = await loadCSV(seriesMetadata.file);
-
-      // Subtract series data from running total
-      setRunningTotal(prev => {
-        const dataMap = new Map(data.map(d => [d.timestamp.toISOString(), d.energy_kwh]));
-        return prev.map(point => {
-          const valueToRemove = dataMap.get(point.timestamp.toISOString()) || 0;
-          return {
-            timestamp: point.timestamp,
-            energy_kwh: point.energy_kwh - valueToRemove
-          };
-        });
-      });
-
-      // Remove from metadata
-      setAddedSeries(prev => prev.filter(s => s.instanceId !== instanceId));
-    } catch (err) {
-      setError(`Failed to remove ${seriesMetadata.name}: ${err}`);
-    }
+  const removeSeries = (instanceId: string) => {
+    setAddedSeries(prev => prev.filter(s => s.instanceId !== instanceId));
   };
 
   const plotData = useMemo(() => {
@@ -128,13 +99,10 @@ function App() {
 
     if (baseSeries.length === 0) return traces;
 
-    const aggregatedBase = aggregateData(baseSeries, aggregation);
-    const aggregatedTotal = aggregateData(runningTotal, aggregation);
-
     // Add base line first (for fill to reference)
     traces.push({
-      x: aggregatedBase.map(d => d.timestamp),
-      y: aggregatedBase.map(d => d.energy_kwh),
+      x: baseSeries.map(d => d.timestamp),
+      y: baseSeries.map(d => d.energy_kwh),
       type: 'scattergl',
       mode: 'lines',
       name: 'Base Load',
@@ -144,19 +112,21 @@ function App() {
     });
 
     // Add sum line with fill to previous trace (base)
-    traces.push({
-      x: aggregatedTotal.map(d => d.timestamp),
-      y: aggregatedTotal.map(d => d.energy_kwh),
-      fill: 'tonexty',
-      fillcolor: 'rgba(76, 175, 80, 0.3)',
-      type: 'scattergl',
-      mode: 'lines',
-      name: 'Base + Additions',
-      line: { color: '#4CAF50', width: 2 },
-    });
+    if (addedSeries.length > 0) {
+      traces.push({
+        x: runningTotal.map(d => d.timestamp),
+        y: runningTotal.map(d => d.energy_kwh),
+        fill: 'tonexty',
+        fillcolor: 'rgba(76, 175, 80, 0.3)',
+        type: 'scattergl',
+        mode: 'lines',
+        name: 'Base + Additions',
+        line: { color: '#4CAF50', width: 2 },
+      });
+    }
 
     return traces;
-  }, [baseSeries, runningTotal, aggregation]);
+  }, [baseSeries, runningTotal, addedSeries]);
 
   const handleSeriesSelect = (seriesId: string) => {
     if (seriesId) {
@@ -187,7 +157,7 @@ function App() {
             }}
           >
             <option value="">Select a series...</option>
-            {AVAILABLE_SERIES.map(series => (
+            {availableSeries.map(series => (
               <option key={series.id} value={series.id}>
                 {series.name}
               </option>
