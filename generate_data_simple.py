@@ -115,7 +115,46 @@ def generate_industrial(timestamps, seed_offset=0, variation=1.0, n_points=None)
         data.append(max(0, value))
     return data
 
-# Generate data - base series + 3 versions of each type
+# Series 4: Solar generation (negative consumption = generation)
+def generate_solar(timestamps, seed_offset=0, variation=1.0):
+    random.seed(42 + seed_offset)
+    data = []
+    for i, ts in enumerate(timestamps):
+        hour_of_day = (i % (24 * 4)) / 4
+        day_of_year = (i // (24 * 4)) % 365
+
+        # Solar generation only during daylight hours (roughly 6am-6pm)
+        # Peak at solar noon (12pm)
+        if 6 <= hour_of_day <= 18:
+            # Bell curve for daily generation pattern
+            solar_intensity = math.exp(-((hour_of_day - 12) ** 2) / 8) * variation
+
+            # Seasonal variation (more sun in summer, less in winter)
+            # Peak around day 172 (June 21), minimum around day 355 (Dec 21)
+            seasonal_factor = 0.7 + 0.3 * math.sin(2 * math.pi * (day_of_year - 80) / 365)
+
+            # Base generation capacity (negative = generation)
+            base_generation = -80 * solar_intensity * seasonal_factor
+
+            # Weather variability (cloudy days reduce generation)
+            # Occasional very cloudy days (20% of days)
+            if random.random() < 0.2:
+                cloud_factor = random.uniform(0.2, 0.5)  # Heavy clouds
+            else:
+                cloud_factor = random.uniform(0.8, 1.0)  # Clear to partly cloudy
+
+            # Noise
+            noise = random.gauss(0, 3 * variation)
+
+            value = base_generation * cloud_factor + noise
+        else:
+            # Night time - no generation, small baseline consumption
+            value = random.uniform(0, 2) * variation
+
+        data.append(value)  # Allow negative values for generation
+    return data
+
+# Generate data - base series + 3 versions of each type (4 types)
 print(f"Generating {n_points} data points for each series...")
 
 # Write to CSV files
@@ -149,6 +188,12 @@ for i, (seed_offset, variation) in enumerate(variations, 1):
     write_csv(f'public/data/industrial_{i}.csv', timestamps, data)
     print(f"  Industrial {i}: avg={sum(data)/len(data):.1f} kWh, min={min(data):.1f}, max={max(data):.1f}")
 
+# Generate 3 versions of solar
+for i, (seed_offset, variation) in enumerate(variations, 1):
+    data = generate_solar(timestamps, seed_offset, variation)
+    write_csv(f'public/data/solar_{i}.csv', timestamps, data)
+    print(f"  Solar {i}: avg={sum(data)/len(data):.1f} kWh, min={min(data):.1f}, max={max(data):.1f}")
+
 print(f"\nGenerated {n_points} data points for each series")
 print(f"Time range: {start_date} to {end_date}")
 print(f"Interval: 15 minutes")
@@ -157,3 +202,4 @@ print("  - public/data/base.csv")
 print("  - public/data/residential_1.csv, residential_2.csv, residential_3.csv")
 print("  - public/data/commercial_1.csv, commercial_2.csv, commercial_3.csv")
 print("  - public/data/industrial_1.csv, industrial_2.csv, industrial_3.csv")
+print("  - public/data/solar_1.csv, solar_2.csv, solar_3.csv")

@@ -12,7 +12,7 @@
 
 #### Add Series Dropdown
 - **Purpose**: Add any time series to chart
-- **Options**: All 9 series (Residential 1-3, Commercial 1-3, Industrial 1-3)
+- **Options**: All 12 series (Residential 1-3, Commercial 1-3, Industrial 1-3, Solar 1-3)
 - **Behavior**: Select to add immediately, can select same series multiple times
 
 #### Loaded Series Panel
@@ -73,10 +73,16 @@ Interactive Plotly chart with time on X-axis and energy (kWh) on Y-axis.
 4. Compare responses to seasons
 
 ### Multi-Series Comparison
-1. Add multiple series (up to 9)
+1. Add multiple series (up to 12)
 2. Use "Yearly" aggregation for overview
 3. Zoom into specific periods
 4. Remove irrelevant series with × button
+
+### Net Energy Analysis
+1. Add residential/commercial/industrial series
+2. Add solar series (negative = generation)
+3. Observe net consumption (consumption - generation)
+4. Use "Daily" aggregation to see daily patterns
 
 ## Data Characteristics
 
@@ -102,6 +108,14 @@ Interactive Plotly chart with time on X-axis and energy (kWh) on Y-axis.
 - **Shutdowns**: Random maintenance (~7/year)
 - **Recovery**: Gradual return after shutdown
 - **Seasonal**: Minimal variation
+- **Variations**: 1 (baseline), 2 (-10%), 3 (+10%)
+
+### Solar Series
+- **Pattern**: Daytime generation only (negative values)
+- **Generation Hours**: 6 AM - 6 PM
+- **Peak**: Solar noon (12 PM)
+- **Weather**: Variable cloud cover reduces generation
+- **Seasonal**: Higher in summer, lower in winter
 - **Variations**: 1 (baseline), 2 (-10%), 3 (+10%)
 
 ## Tips

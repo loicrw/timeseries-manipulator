@@ -14,7 +14,7 @@ timeseries-manipulator/
 ├── src/                   # React frontend
 │   ├── App.tsx
 │   └── types.ts
-├── public/data/           # CSV files (9 series, 175k points each)
+├── public/data/           # CSV files (12 series, 175k points each)
 ├── package.json
 └── generate_data_simple.py
 ```
@@ -57,6 +57,7 @@ timestamp,energy_kwh
 | Residential | Daily peaks (morning/evening) | 50-60 | Medium |
 | Commercial | Business hours (8am-6pm) | 40-50 | High |
 | Industrial | Constant with shutdowns | 130-160 | Low |
+| Solar | Daytime generation (negative) | -8 to -10 | High |
 
 **Aggregation Levels:**
 

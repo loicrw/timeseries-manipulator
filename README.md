@@ -53,13 +53,13 @@ This checks all prerequisites, dependencies, and running services.
 
 ## Features
 
-- **175,296 data points** per series, 9 series total (5 years, 15-min intervals)
+- **175,296 data points** per series, 12 series total (5 years, 15-min intervals)
 - **Real-time aggregation**: Raw → daily → monthly → yearly
 - **Add/remove unlimited series** dynamically
 - **Interactive WebGL charts**: Zoom, pan, hover with Plotly.js
 - **Python + Polars backend**: Fast DataFrame operations
 - **React frontend**: Modern TypeScript UI
-- **9 pre-generated datasets**: Residential, Commercial, Industrial patterns
+- **12 pre-generated datasets**: Residential, Commercial, Industrial, Solar patterns
 
 ## Usage
 
@@ -89,7 +89,7 @@ Full guide: [docs/USAGE.md](docs/USAGE.md)
          ▼
 ┌──────────────────┐
 │   CSV Files      │  public/data/
-│   (175k pts ea)  │  9 × 4.4MB
+│   (175k pts ea)  │  12 × 4.4MB
 └──────────────────┘
 ```
 

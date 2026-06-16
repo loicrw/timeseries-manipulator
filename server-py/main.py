@@ -23,14 +23,8 @@ def load_dataframe(filename: str) -> pl.DataFrame:
 
     # Polars optimized CSV reading
     df = pl.read_csv(
-        filepath,
-        schema={
-            "timestamp": pl.Utf8,
-            "energy_kwh": pl.Float64
-        }
-    ).with_columns([
-        pl.col("timestamp").str.to_datetime("%Y-%m-%dT%H:%M:%S")
-    ])
+        filepath, schema={"timestamp": pl.Utf8, "energy_kwh": pl.Float64}
+    ).with_columns([pl.col("timestamp").str.to_datetime("%Y-%m-%dT%H:%M:%S")])
 
     df_cache[filename] = df
     return df
@@ -42,21 +36,16 @@ def aggregate_dataframe(df: pl.DataFrame, aggregation: str) -> pl.DataFrame:
         return df
 
     # Polars truncate operations are blazing fast
-    truncate_rule = {
-        "daily": "1d",
-        "monthly": "1mo",
-        "yearly": "1y"
-    }.get(aggregation, "1d")
+    truncate_rule = {"daily": "1d", "monthly": "1mo", "yearly": "1y"}.get(
+        aggregation, "1d"
+    )
 
     return (
-        df
-        .with_columns([
-            pl.col("timestamp").dt.truncate(truncate_rule).alias("timestamp")
-        ])
+        df.with_columns(
+            [pl.col("timestamp").dt.truncate(truncate_rule).alias("timestamp")]
+        )
         .group_by("timestamp")
-        .agg([
-            pl.col("energy_kwh").mean()
-        ])
+        .agg([pl.col("energy_kwh").mean()])
         .sort("timestamp")
     )
 
@@ -70,12 +59,14 @@ def add_series(base_df: pl.DataFrame, series_files: list[str]) -> pl.DataFrame:
 
         # Polars join is extremely fast (hash-based)
         result_df = (
-            result_df
-            .join(series_df, on="timestamp", how="left", suffix="_add")
-            .with_columns([
-                (pl.col("energy_kwh") + pl.col("energy_kwh_add").fill_null(0))
-                .alias("energy_kwh")
-            ])
+            result_df.join(series_df, on="timestamp", how="left", suffix="_add")
+            .with_columns(
+                [
+                    (
+                        pl.col("energy_kwh") + pl.col("energy_kwh_add").fill_null(0)
+                    ).alias("energy_kwh")
+                ]
+            )
             .select(["timestamp", "energy_kwh"])
         )
 
@@ -85,10 +76,7 @@ def add_series(base_df: pl.DataFrame, series_files: list[str]) -> pl.DataFrame:
 def df_to_json(df: pl.DataFrame) -> list[dict]:
     """Convert Polars DataFrame to JSON-serializable list."""
     return [
-        {
-            "timestamp": row[0].isoformat(),
-            "energy_kwh": row[1]
-        }
+        {"timestamp": row[0].isoformat(), "energy_kwh": row[1]}
         for row in df.iter_rows()
     ]
 
@@ -96,16 +84,85 @@ def df_to_json(df: pl.DataFrame) -> list[dict]:
 @app.route("/api/series", methods=["GET"])
 def get_series_list():
     """Return list of available time series."""
+    colours = {
+        "residential": "#106300",
+        "commercial": "#0003CF",
+        "industrial": "#CC8C00",
+        "solar": "#E4D500",
+    }
     series = [
-        {"id": "residential_1", "name": "Residential 1", "file": "residential_1.csv", "color": "#FF6B6B"},
-        {"id": "residential_2", "name": "Residential 2", "file": "residential_2.csv", "color": "#FF6B6B"},
-        {"id": "residential_3", "name": "Residential 3", "file": "residential_3.csv", "color": "#FF6B6B"},
-        {"id": "commercial_1", "name": "Commercial 1", "file": "commercial_1.csv", "color": "#4ECDC4"},
-        {"id": "commercial_2", "name": "Commercial 2", "file": "commercial_2.csv", "color": "#4ECDC4"},
-        {"id": "commercial_3", "name": "Commercial 3", "file": "commercial_3.csv", "color": "#4ECDC4"},
-        {"id": "industrial_1", "name": "Industrial 1", "file": "industrial_1.csv", "color": "#FFFB00"},
-        {"id": "industrial_2", "name": "Industrial 2", "file": "industrial_2.csv", "color": "#FFFB00"},
-        {"id": "industrial_3", "name": "Industrial 3", "file": "industrial_3.csv", "color": "#FFFB00"},
+        {
+            "id": "residential_1",
+            "name": "Residential 1",
+            "file": "residential_1.csv",
+            "color": colours["residential"],
+        },
+        {
+            "id": "residential_2",
+            "name": "Residential 2",
+            "file": "residential_2.csv",
+            "color": colours["residential"],
+        },
+        {
+            "id": "residential_3",
+            "name": "Residential 3",
+            "file": "residential_3.csv",
+            "color": colours["residential"],
+        },
+        {
+            "id": "commercial_1",
+            "name": "Commercial 1",
+            "file": "commercial_1.csv",
+            "color": colours["commercial"],
+        },
+        {
+            "id": "commercial_2",
+            "name": "Commercial 2",
+            "file": "commercial_2.csv",
+            "color": colours["commercial"],
+        },
+        {
+            "id": "commercial_3",
+            "name": "Commercial 3",
+            "file": "commercial_3.csv",
+            "color": colours["commercial"],
+        },
+        {
+            "id": "industrial_1",
+            "name": "Industrial 1",
+            "file": "industrial_1.csv",
+            "color": colours["industrial"],
+        },
+        {
+            "id": "industrial_2",
+            "name": "Industrial 2",
+            "file": "industrial_2.csv",
+            "color": colours["industrial"],
+        },
+        {
+            "id": "industrial_3",
+            "name": "Industrial 3",
+            "file": "industrial_3.csv",
+            "color": colours["industrial"],
+        },
+        {
+            "id": "solar_1",
+            "name": "Solar 1",
+            "file": "solar_1.csv",
+            "color": colours["solar"],
+        },
+        {
+            "id": "solar_2",
+            "name": "Solar 2",
+            "file": "solar_2.csv",
+            "color": colours["solar"],
+        },
+        {
+            "id": "solar_3",
+            "name": "Solar 3",
+            "file": "solar_3.csv",
+            "color": colours["solar"],
+        },
     ]
     return jsonify({"series": series})
 

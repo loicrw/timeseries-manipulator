@@ -2,7 +2,7 @@
 
 ## Data
 
-- **9 time series**: 3 residential, 3 commercial, 3 industrial
+- **12 time series**: 3 residential, 3 commercial, 3 industrial, 3 solar
 - **175,296 data points per series**: 15-minute intervals for 5 years (2021-2025)
 - **CSV storage**: Files in `public/data/`
 - **Auto-load**: Residential 1 loads automatically
@@ -52,6 +52,14 @@ Active aggregation highlighted for visual feedback.
 - Constant high load
 - Random maintenance shutdowns (~7/year)
 - Minimal seasonal variation
+- 10% scale differences between variants
+
+### Solar (1, 2, 3)
+- Negative values = generation (produces energy)
+- Daytime generation only (6 AM - 6 PM)
+- Peak generation at solar noon
+- Weather variability (cloud cover)
+- Seasonal variation (more in summer, less in winter)
 - 10% scale differences between variants
 
 ## Technical Stack

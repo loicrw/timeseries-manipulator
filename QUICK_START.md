@@ -41,9 +41,10 @@ Navigate to **http://localhost:5173**
 ## Try It
 
 1. Change aggregation (Daily, Monthly, Yearly)
-2. Add series from dropdown
+2. Add series from dropdown (12 available: Residential, Commercial, Industrial, Solar)
 3. Zoom by dragging on chart
 4. Remove series with × button
+5. Try Solar series to see negative values (generation)
 
 ## Next Steps
 

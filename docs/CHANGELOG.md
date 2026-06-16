@@ -1,5 +1,23 @@
 # Changelog
 
+## Version 3.1 - Solar Series (2026-06-16)
+
+### Added
+- **3 solar generation series** with negative values (generation)
+- Daytime-only generation pattern (6 AM - 6 PM)
+- Peak generation at solar noon
+- Weather variability with cloud cover simulation
+- Seasonal variation (higher summer, lower winter)
+- Updated total series count from 9 to 12
+
+### Modified
+- Data generator: Added `generate_solar()` function
+- Backend API: Added solar_1, solar_2, solar_3 to series list
+- Documentation: Updated all references from 9 to 12 series
+- CSV files: Generated 3 new solar_*.csv files (4.4MB each)
+
+---
+
 ## Version 3.0 - Polars Backend (2026-06-16)
 
 ### Major Changes
