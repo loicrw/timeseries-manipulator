@@ -19,19 +19,30 @@
 
 ### Series Management
 - **Add unlimited series**: Select from dropdown
-- **Same series multiple times**: For comparison
-- **Color-coded tags**: Each series has unique color
-- **One-click removal**: × button on tags
+- **Same series multiple times**: For comparison with different multipliers
+- **Color-coded sidebar**: Each series displayed in left sidebar with unique color indicator
+- **Positive/negative multipliers**: Independent scaling for positive and negative values
+  - Default multipliers: 1.0 (no scaling)
+  - Example: Positive multiplier 1.5 scales consumption by 50%, negative multiplier 0.8 reduces solar generation by 20%
+- **One-click removal**: × button on each series card
+- **Scrollable list**: Handles 4+ series with smooth scrolling
+
+### Year Filtering
+- **Year selector dropdown**: Filter data to specific year
+- **Available years**: 2021, 2022, 2023, 2024, 2025, or All Years
+- **Client-side filtering**: Instant updates without backend calls
+- **Works with all aggregations**: Combine with any aggregation level
 
 ## Aggregation
 
-Four levels with button toggle:
+Five levels with button toggle:
 - **Raw (15min)**: All 175,296 points per series
+- **Hourly**: Averaged to ~43,824 hourly values (1-hour intervals)
 - **Daily**: Averaged to ~1,825 daily values
 - **Monthly**: Averaged to 60 monthly values
 - **Yearly**: Averaged to 5 yearly values
 
-Active aggregation highlighted for visual feedback.
+Active aggregation highlighted with yellow (#FFB81C) background.
 
 ## Data Patterns
 
@@ -102,19 +113,28 @@ timeseries-manipulator/
 
 ## User Interface
 
-### Controls Panel
+### Controls Panel (Top Bar)
 - Series selection dropdown
-- Aggregation toggle buttons
-- Clear visual feedback
+- Aggregation toggle buttons (Raw / Hourly / Daily / Monthly / Yearly)
+- Year filter dropdown (2021-2025 + All Years)
+- Clear visual feedback with yellow accent color
 
-### Loaded Series Panel
-- Visual tags for each loaded series
-- Color indicator matching chart lines
-- One-click removal
-- Series count display
+### Sidebar (Left, 320px Fixed Width)
+- **Added Series List**: Scrollable container for all added series
+- **Series Cards**: Each card displays:
+  - Color indicator matching chart lines
+  - Series name
+  - Positive multiplier input (scales positive values)
+  - Negative multiplier input (scales negative values)
+  - Remove button (×)
+- **Empty State**: Helpful message when no series added
+- **Series Counter**: Shows total count in header
 
-### Chart Display
-- Full-width responsive design
-- Professional 9-color palette
+### Chart Display (Right, Flexible Width)
+- Responsive design that adapts to sidebar
+- **Base Load line** (gray, #64696C): Original base series
+- **Base + Additions line** (yellow, #FFB81C): Combined result with multipliers
+- Professional color scheme
 - Shadow effects and rounded corners
-- Smooth interactions
+- Smooth interactions with WebGL rendering
+- Chart traces ordered for optimal visibility (yellow line behind gray line)

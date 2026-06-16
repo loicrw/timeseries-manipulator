@@ -36,7 +36,7 @@ def aggregate_dataframe(df: pl.DataFrame, aggregation: str) -> pl.DataFrame:
         return df
 
     # Polars truncate operations are blazing fast
-    truncate_rule = {"daily": "1d", "monthly": "1mo", "yearly": "1y"}.get(
+    truncate_rule = {"hourly": "1h", "daily": "1d", "monthly": "1mo", "yearly": "1y"}.get(
         aggregation, "1d"
     )
 

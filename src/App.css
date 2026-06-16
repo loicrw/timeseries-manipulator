@@ -2,6 +2,8 @@
   padding: 20px;
   max-width: 1600px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -48,6 +50,10 @@ select {
   min-width: 200px;
 }
 
+select.year-select {
+  min-width: 120px;
+}
+
 select:hover {
   border-color: #999;
 }
@@ -89,12 +95,31 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(255, 184, 28, 0.1);
 }
 
+.main-content {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 100%;
+}
+
+.sidebar {
+  flex: 0 0 320px;
+  min-width: 320px;
+}
+
 .loaded-series {
   background: white;
   padding: 15px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+}
+
+.empty-state {
+  color: #999;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .loaded-series label {
@@ -109,6 +134,27 @@ select:focus {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.series-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.series-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.series-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.series-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .series-item {
@@ -133,8 +179,8 @@ select:focus {
 
 .series-multipliers {
   display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 10px;
   padding-left: 20px;
 }
 
@@ -152,7 +198,7 @@ select:focus {
 }
 
 .multiplier-input input {
-  width: 80px;
+  width: 100px;
   padding: 6px 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -200,6 +246,8 @@ select:focus {
 }
 
 .chart-container {
+  flex: 1;
+  min-width: 0;
   background: white;
   padding: 20px;
   border-radius: 8px;

@@ -40,11 +40,15 @@ Navigate to **http://localhost:5173**
 
 ## Try It
 
-1. Change aggregation (Daily, Monthly, Yearly)
-2. Add series from dropdown (12 available: Residential, Commercial, Industrial, Solar)
-3. Zoom by dragging on chart
-4. Remove series with × button
-5. Try Solar series to see negative values (generation)
+1. **Add a series** from dropdown (12 available: Residential, Commercial, Industrial, Solar)
+2. **Adjust multipliers** in the left sidebar:
+   - Positive multiplier: scales consumption (try 1.5)
+   - Negative multiplier: scales generation (try 0.8 for solar)
+3. **Change aggregation**: Raw (15min) / Hourly / Daily / Monthly / Yearly
+4. **Filter by year**: Select 2021-2025 or view All Years
+5. **Zoom**: Drag on chart to zoom in, double-click to reset
+6. **Compare**: Yellow line = Base + Additions, Gray line = Base Load
+7. **Remove series**: Click × button in sidebar
 
 ## Next Steps
 

@@ -1,5 +1,80 @@
 # Changelog
 
+## Version 3.2 - Multipliers & Enhancements (2026-06-16)
+
+### Added
+- **Separate positive/negative multipliers** for each added series
+  - Positive multiplier scales all positive values independently
+  - Negative multiplier scales all negative values independently
+  - Default multipliers: 1.0 (no scaling)
+  - Real-time updates when multipliers change
+- **Hourly aggregation level**: New option between Raw and Daily
+  - 43,824 hourly data points (1-hour intervals)
+  - Backend: Polars `dt.truncate("1h")` for efficient aggregation
+- **Year filtering**: Client-side filtering to specific years
+  - Dropdown options: All Years, 2021, 2022, 2023, 2024, 2025
+  - Works with all aggregation levels
+  - Instant filtering without backend calls
+- **Updated color scheme**: Professional styling throughout
+  - Primary yellow: #FFB81C (Base + Additions line)
+  - Gray: #64696C (Base Load line)
+  - Dark blue: #003D5C (text accents)
+  - Applied to buttons, inputs, and interactive elements
+- **Sidebar layout**: Reorganized UI with fixed left sidebar
+  - 320px fixed-width sidebar for added series
+  - Scrollable series list (handles 4+ series)
+  - Each series card shows color, name, multipliers, and remove button
+  - Flexible chart container on right side
+
+### Modified
+- **Backend API** (`server-py/main.py`):
+  - `add_series()` now accepts series configs with multipliers
+  - Polars conditional logic: `pl.when()` for separate positive/negative scaling
+  - `aggregate_dataframe()` supports `"hourly"` aggregation
+- **Frontend** (`src/App.tsx`):
+  - `AddedSeriesMetadata` interface includes `positiveMultiplier` and `negativeMultiplier`
+  - Year filtering state and logic
+  - Trace order swapped: Base + Additions renders first, Base Load on top
+  - Multiplier update function for real-time changes
+  - API calls send multiplier configs
+- **Types** (`src/types.ts`):
+  - `AggregationType` includes `'hourly'`
+- **Styles** (`src/App.css`):
+  - Flexbox layout with sidebar and main content areas
+  - Updated color scheme throughout
+  - Scrollable series list with custom scrollbar
+  - Multiplier inputs stack vertically in series cards
+
+### UI/UX Improvements
+- **Chart trace order**: Gray baseline draws on top of yellow combined line for better visibility
+- **Multiplier inputs**: Clear labels ("Positive multiplier", "Negative multiplier")
+- **Empty state**: Helpful message when no series added
+- **Series counter**: Shows count in sidebar header
+- **Consistent styling**: Yellow accent on all interactive elements
+
+### Technical Changes
+- Backend multiplier logic uses Polars expressions for performance
+- Client-side year filtering avoids unnecessary API calls
+- CSS flexbox prevents chart overflow beyond top bar
+- Multiplier state managed per series instance
+
+### Documentation Updates
+- **README.md**: Updated features list and usage instructions
+- **docs/FEATURES.md**: Added multipliers, hourly aggregation, year filtering, UI layout
+- **docs/USAGE.md**: Comprehensive workflows with multiplier examples
+- **docs/API.md**: Updated endpoints with multiplier configs and hourly aggregation
+- **PROJECT_OVERVIEW.md**: Added hourly aggregation to table
+- All documentation updated to reflect new features
+
+### Use Cases Enabled
+- **Load forecasting**: Scale consumption up/down with positive multipliers
+- **Solar modeling**: Reduce generation impact with negative multipliers < 1.0
+- **Scenario analysis**: Compare multiple versions of same series with different scales
+- **Year-over-year comparison**: Filter to single year for focused analysis
+- **Intraday patterns**: Hourly aggregation for detailed daily cycle analysis
+
+---
+
 ## Version 3.1 - Solar Series (2026-06-16)
 
 ### Added

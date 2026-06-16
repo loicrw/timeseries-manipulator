@@ -21,6 +21,7 @@ function App() {
   const [addedSeries, setAddedSeries] = useState<AddedSeriesMetadata[]>([]);
   const [availableSeries, setAvailableSeries] = useState<SeriesInfo[]>([]);
   const [aggregation, setAggregation] = useState<AggregationType>('raw');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>('');
@@ -36,7 +37,7 @@ function App() {
   // Load data from API
   useEffect(() => {
     loadData();
-  }, [aggregation, addedSeries]);
+  }, [aggregation, addedSeries, selectedYear]);
 
   const loadData = async () => {
     setLoading(true);
@@ -113,21 +114,21 @@ function App() {
 
     if (baseSeries.length === 0) return traces;
 
-    // Add base line
-    traces.push({
-      x: baseSeries.map(d => d.timestamp),
-      y: baseSeries.map(d => d.energy_kwh),
-      type: 'scattergl',
-      mode: 'lines',
-      name: 'Base Load',
-      line: { color: '#64696C', width: 2 },
-    });
+    // Filter data by selected year
+    const filterByYear = (data: TimeSeriesData[]) => {
+      if (selectedYear === 'all') return data;
+      const year = parseInt(selectedYear);
+      return data.filter(d => d.timestamp.getFullYear() === year);
+    };
 
-    // Add sum line
+    const filteredBase = filterByYear(baseSeries);
+    const filteredTotal = filterByYear(runningTotal);
+
+    // Add sum line first (drawn in background)
     if (addedSeries.length > 0) {
       traces.push({
-        x: runningTotal.map(d => d.timestamp),
-        y: runningTotal.map(d => d.energy_kwh),
+        x: filteredTotal.map(d => d.timestamp),
+        y: filteredTotal.map(d => d.energy_kwh),
         type: 'scattergl',
         mode: 'lines',
         name: 'Base + Additions',
@@ -135,8 +136,18 @@ function App() {
       });
     }
 
+    // Add base line last (drawn on top)
+    traces.push({
+      x: filteredBase.map(d => d.timestamp),
+      y: filteredBase.map(d => d.energy_kwh),
+      type: 'scattergl',
+      mode: 'lines',
+      name: 'Base Load',
+      line: { color: '#64696C', width: 2 },
+    });
+
     return traces;
-  }, [baseSeries, runningTotal, addedSeries]);
+  }, [baseSeries, runningTotal, addedSeries, selectedYear]);
 
   const handleSeriesSelect = (seriesId: string) => {
     if (seriesId) {
@@ -185,6 +196,12 @@ function App() {
               Raw (15min)
             </button>
             <button
+              className={`aggregation-btn ${aggregation === 'hourly' ? 'active' : ''}`}
+              onClick={() => setAggregation('hourly')}
+            >
+              Hourly
+            </button>
+            <button
               className={`aggregation-btn ${aggregation === 'daily' ? 'active' : ''}`}
               onClick={() => setAggregation('daily')}
             >
@@ -204,80 +221,104 @@ function App() {
             </button>
           </div>
         </div>
+
+        <div className="control-group">
+          <label>Year:</label>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="year-select"
+          >
+            <option value="all">All Years</option>
+            <option value="2021">2021</option>
+            <option value="2022">2022</option>
+            <option value="2023">2023</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+          </select>
+        </div>
       </div>
 
-      {addedSeries.length > 0 && (
-        <div className="loaded-series">
-          <label>Added Series ({addedSeries.length}):</label>
-          <div className="series-list">
-            {addedSeries.map((series) => (
-              <div key={series.instanceId} className="series-item">
-                <div className="series-header">
-                  <span className="series-color" style={{ backgroundColor: series.color }}></span>
-                  <span className="series-name">{series.name}</span>
-                  <button
-                    className="remove-btn"
-                    onClick={() => removeSeries(series.instanceId)}
-                    title="Remove series"
-                  >
-                    ×
-                  </button>
-                </div>
-                <div className="series-multipliers">
-                  <div className="multiplier-input">
-                    <label>Positive multiplier:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={series.positiveMultiplier}
-                      onChange={(e) => updateMultiplier(series.instanceId, 'positiveMultiplier', parseFloat(e.target.value) || 0)}
-                    />
+      <div className="main-content">
+        <div className="sidebar">
+          {addedSeries.length > 0 ? (
+            <div className="loaded-series">
+              <label>Added Series ({addedSeries.length}):</label>
+              <div className="series-list">
+                {addedSeries.map((series) => (
+                  <div key={series.instanceId} className="series-item">
+                    <div className="series-header">
+                      <span className="series-color" style={{ backgroundColor: series.color }}></span>
+                      <span className="series-name">{series.name}</span>
+                      <button
+                        className="remove-btn"
+                        onClick={() => removeSeries(series.instanceId)}
+                        title="Remove series"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="series-multipliers">
+                      <div className="multiplier-input">
+                        <label>Positive multiplier:</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={series.positiveMultiplier}
+                          onChange={(e) => updateMultiplier(series.instanceId, 'positiveMultiplier', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="multiplier-input">
+                        <label>Negative multiplier:</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={series.negativeMultiplier}
+                          onChange={(e) => updateMultiplier(series.instanceId, 'negativeMultiplier', parseFloat(e.target.value) || 0)}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="multiplier-input">
-                    <label>Negative multiplier:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={series.negativeMultiplier}
-                      onChange={(e) => updateMultiplier(series.instanceId, 'negativeMultiplier', parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="loaded-series">
+              <p className="empty-state">No series added yet. Select a series from the dropdown above to get started.</p>
+            </div>
+          )}
         </div>
-      )}
 
-      <div className="chart-container">
-        <Plot
-          data={plotData}
-          layout={{
-            title: 'Energy Consumption Time Series',
-            xaxis: {
-              title: 'Time',
-              type: 'date',
-              rangeslider: { visible: false },
-            },
-            yaxis: {
-              title: 'Energy Consumption (kWh)',
-              fixedrange: false,
-            },
-            hovermode: 'x unified',
-            dragmode: 'zoom',
-            height: 600,
-            margin: { t: 50, r: 50, b: 100, l: 80 },
-          }}
-          config={{
-            displayModeBar: true,
-            displaylogo: false,
-            modeBarButtonsToRemove: ['lasso2d', 'select2d'],
-            scrollZoom: true,
-          }}
-          style={{ width: '100%', height: '100%' }}
-        />
+        <div className="chart-container">
+          <Plot
+            data={plotData}
+            layout={{
+              title: 'Energy Consumption Time Series',
+              xaxis: {
+                title: 'Time',
+                type: 'date',
+                rangeslider: { visible: false },
+              },
+              yaxis: {
+                title: 'Energy Consumption (kWh)',
+                fixedrange: false,
+              },
+              hovermode: 'x unified',
+              dragmode: 'zoom',
+              height: 600,
+              margin: { t: 50, r: 50, b: 100, l: 80 },
+            }}
+            config={{
+              displayModeBar: true,
+              displaylogo: false,
+              modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+              scrollZoom: true,
+            }}
+            style={{ width: '100%', height: '100%' }}
+          />
+        </div>
       </div>
     </div>
   );

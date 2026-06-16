@@ -16,4 +16,4 @@ export interface LoadedSeries {
   data: TimeSeriesData[];
 }
 
-export type AggregationType = 'raw' | 'daily' | 'monthly' | 'yearly';
+export type AggregationType = 'raw' | 'hourly' | 'daily' | 'monthly' | 'yearly';

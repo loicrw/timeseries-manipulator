@@ -54,21 +54,29 @@ This checks all prerequisites, dependencies, and running services.
 ## Features
 
 - **175,296 data points** per series, 12 series total (5 years, 15-min intervals)
-- **Real-time aggregation**: Raw → daily → monthly → yearly
-- **Add/remove unlimited series** dynamically
+- **Real-time aggregation**: Raw (15min) → Hourly → Daily → Monthly → Yearly
+- **Separate positive/negative multipliers**: Scale positive and negative values independently per series
+- **Year filtering**: View all years or filter to specific year (2021-2025)
+- **Add/remove unlimited series** dynamically with sidebar management
 - **Interactive WebGL charts**: Zoom, pan, hover with Plotly.js
-- **Python + Polars backend**: Fast DataFrame operations
-- **React frontend**: Modern TypeScript UI
+- **Professional UI**: Clean styling with yellow (#FFB81C) and gray (#64696C) color scheme
+- **Python + Polars backend**: Fast DataFrame operations with conditional multipliers
+- **React frontend**: Modern TypeScript UI with responsive sidebar layout
 - **12 pre-generated datasets**: Residential, Commercial, Industrial, Solar patterns
 
 ## Usage
 
-1. Base series auto-loads on startup
-2. Add series from dropdown
-3. Remove with × button on series tags
-4. Change aggregation: Raw/Daily/Monthly/Yearly
-5. Zoom: Click and drag on chart
-6. Reset: Double-click chart
+1. **Base series** (gray line) auto-loads on startup
+2. **Add series** from dropdown - appears in left sidebar with color indicator
+3. **Configure multipliers** for each series:
+   - **Positive multiplier**: Scales all positive values (default: 1.0)
+   - **Negative multiplier**: Scales all negative values (default: 1.0)
+4. **Filter by year**: Select 2021-2025 or "All Years"
+5. **Change aggregation**: Raw (15min) / Hourly / Daily / Monthly / Yearly
+6. **View combined series** (yellow line): Base + all added series with multipliers applied
+7. **Remove series**: Click × button on any series in sidebar
+8. **Zoom**: Click and drag on chart
+9. **Reset**: Double-click chart
 
 Full guide: [docs/USAGE.md](docs/USAGE.md)
 

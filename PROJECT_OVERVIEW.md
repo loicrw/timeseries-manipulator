@@ -63,7 +63,8 @@ timestamp,energy_kwh
 
 | Level | Points | Use Case |
 |-------|--------|----------|
-| Raw | 175,296 | Detailed analysis |
+| Raw | 175,296 | Detailed analysis (15-minute intervals) |
+| Hourly | 43,824 | Intraday patterns (1-hour intervals) |
 | Daily | 1,825 | Weekly/monthly patterns |
 | Monthly | 60 | Seasonal trends |
 | Yearly | 5 | Multi-year comparison |
@@ -165,4 +166,4 @@ MIT License
 
 ---
 
-Version 3.0 | Last updated: 2026-06-16
+Version 3.2 | Last updated: 2026-06-16

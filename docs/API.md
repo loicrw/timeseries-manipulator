@@ -49,7 +49,7 @@ curl http://localhost:3001/api/series
 Returns base series with optional aggregation.
 
 **Query Parameters:**
-- `aggregation` (optional): `raw` | `daily` | `monthly` | `yearly` (default: `raw`)
+- `aggregation` (optional): `raw` | `hourly` | `daily` | `monthly` | `yearly` (default: `raw`)
 
 **Request:**
 ```http
@@ -71,6 +71,7 @@ GET /api/base?aggregation=daily HTTP/1.1
 **Examples:**
 ```bash
 curl "http://localhost:3001/api/base?aggregation=raw"
+curl "http://localhost:3001/api/base?aggregation=hourly"
 curl "http://localhost:3001/api/base?aggregation=daily"
 curl "http://localhost:3001/api/base?aggregation=monthly"
 curl "http://localhost:3001/api/base?aggregation=yearly"
@@ -80,10 +81,13 @@ curl "http://localhost:3001/api/base?aggregation=yearly"
 
 ### POST /api/running-total
 
-Calculates running total (base + added series) with aggregation.
+Calculates running total (base + added series) with aggregation and multipliers.
 
 **Request Body:**
-- `addedSeriesFiles` (array of strings, required): CSV filenames to add
+- `addedSeriesFiles` (array of objects, required): Series configurations with multipliers
+  - `file` (string): CSV filename
+  - `positiveMultiplier` (number, optional): Multiplier for positive values (default: 1.0)
+  - `negativeMultiplier` (number, optional): Multiplier for negative values (default: 1.0)
 - `aggregation` (string, optional): Aggregation level (default: `raw`)
 
 **Request:**
@@ -92,7 +96,18 @@ POST /api/running-total HTTP/1.1
 Content-Type: application/json
 
 {
-  "addedSeriesFiles": ["residential_1.csv", "commercial_1.csv"],
+  "addedSeriesFiles": [
+    {
+      "file": "residential_1.csv",
+      "positiveMultiplier": 1.5,
+      "negativeMultiplier": 1.0
+    },
+    {
+      "file": "solar_1.csv",
+      "positiveMultiplier": 1.0,
+      "negativeMultiplier": 0.8
+    }
+  ],
   "aggregation": "daily"
 }
 ```
@@ -111,15 +126,26 @@ Content-Type: application/json
 
 **Examples:**
 ```bash
-# Add one series
+# Add one series with default multipliers
 curl -X POST http://localhost:3001/api/running-total \
   -H "Content-Type: application/json" \
-  -d '{"addedSeriesFiles": ["residential_1.csv"], "aggregation": "daily"}'
+  -d '{"addedSeriesFiles": [{"file": "residential_1.csv"}], "aggregation": "daily"}'
 
-# Add multiple series
+# Add series with custom multipliers
 curl -X POST http://localhost:3001/api/running-total \
   -H "Content-Type: application/json" \
-  -d '{"addedSeriesFiles": ["residential_1.csv", "commercial_1.csv"], "aggregation": "monthly"}'
+  -d '{"addedSeriesFiles": [{"file": "residential_1.csv", "positiveMultiplier": 1.5, "negativeMultiplier": 1.0}], "aggregation": "hourly"}'
+
+# Add multiple series with different multipliers
+curl -X POST http://localhost:3001/api/running-total \
+  -H "Content-Type: application/json" \
+  -d '{
+    "addedSeriesFiles": [
+      {"file": "residential_1.csv", "positiveMultiplier": 1.2, "negativeMultiplier": 1.0},
+      {"file": "solar_1.csv", "positiveMultiplier": 1.0, "negativeMultiplier": 0.8}
+    ],
+    "aggregation": "monthly"
+  }'
 ```
 
 ---
@@ -138,7 +164,17 @@ interface TimeSeriesPoint {
 ### AggregationType
 
 ```typescript
-type AggregationType = "raw" | "daily" | "monthly" | "yearly";
+type AggregationType = "raw" | "hourly" | "daily" | "monthly" | "yearly";
+```
+
+### SeriesConfig
+
+```typescript
+interface SeriesConfig {
+  file: string;                  // CSV filename
+  positiveMultiplier?: number;   // Multiplier for positive values (default: 1.0)
+  negativeMultiplier?: number;   // Multiplier for negative values (default: 1.0)
+}
 ```
 
 ## Error Handling
@@ -196,13 +232,19 @@ const { series } = await seriesRes.json();
 const baseRes = await fetch('http://localhost:3001/api/base?aggregation=daily');
 const { data: baseData } = await baseRes.json();
 
-// Calculate running total
+// Calculate running total with multipliers
 const totalRes = await fetch('http://localhost:3001/api/running-total', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    addedSeriesFiles: ['residential_1.csv'],
-    aggregation: 'monthly'
+    addedSeriesFiles: [
+      {
+        file: 'residential_1.csv',
+        positiveMultiplier: 1.5,
+        negativeMultiplier: 1.0
+      }
+    ],
+    aggregation: 'hourly'
   })
 });
 const { data: totalData } = await totalRes.json();
@@ -222,10 +264,16 @@ response = requests.get('http://localhost:3001/api/base',
                         params={'aggregation': 'daily'})
 base_data = response.json()['data']
 
-# Calculate running total
+# Calculate running total with multipliers
 response = requests.post('http://localhost:3001/api/running-total', json={
-    'addedSeriesFiles': ['residential_1.csv'],
-    'aggregation': 'monthly'
+    'addedSeriesFiles': [
+        {
+            'file': 'residential_1.csv',
+            'positiveMultiplier': 1.5,
+            'negativeMultiplier': 1.0
+        }
+    ],
+    'aggregation': 'hourly'
 })
 total_data = response.json()['data']
 ```
@@ -239,10 +287,10 @@ curl -s http://localhost:3001/api/series | jq '.series[].name'
 # Get base series count
 curl -s "http://localhost:3001/api/base?aggregation=daily" | jq '.data | length'
 
-# Calculate running total
+# Calculate running total with multipliers
 curl -s -X POST http://localhost:3001/api/running-total \
   -H "Content-Type: application/json" \
-  -d '{"addedSeriesFiles":["residential_1.csv"],"aggregation":"monthly"}' \
+  -d '{"addedSeriesFiles":[{"file":"residential_1.csv","positiveMultiplier":1.5,"negativeMultiplier":1.0}],"aggregation":"hourly"}' \
   | jq '.data[0:3]'
 ```
 

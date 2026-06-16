@@ -75,6 +75,8 @@ Feature list covering:
 
 ### [CHANGELOG.md](CHANGELOG.md)
 Version history covering:
+- Version 3.2: Multipliers, hourly aggregation, year filtering, UI enhancements
+- Version 3.1: Solar series addition
 - Version 3.0: Polars backend migration
 - Version 2.0: Multi-series support
 - Version 1.0: Initial release
@@ -127,4 +129,4 @@ Detailed explanation in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 
-Last updated: 2026-06-16 | Version 3.0
+Last updated: 2026-06-16 | Version 3.2
